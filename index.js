@@ -5,13 +5,13 @@ const request = require('request');
 const AddonSDK = require('stremio-addon-sdk');
 const Vimeo = require('vimeo').Vimeo;
 
-const { PORT, PER_PAGE, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
+const { PORT, PER_PAGE, DOMAIN, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
 const JSONCATS = './categories.json';
 const CATS = getCategories();
 
 const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
 const addon = new AddonSDK({
-  id: 'ga.vimeo-stremio-addon',
+  id: DOMAIN,
   version: '1.0.0',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
