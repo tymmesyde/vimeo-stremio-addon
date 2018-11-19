@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 require('dotenv').config()
 const fs = require('fs');
+const path = require('path');
 const request = require('request');
 const Vimeo = require('vimeo').Vimeo;
 const express = require('express');
+const exphbs = require('express-handlebars');
+const sassMiddleware = require('node-sass-middleware');
 const addon = express();
 
-const { PORT, PER_PAGE, ID, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
+const { DEV, PORT, PER_PAGE, ID, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
 const JSONCATS = './categories.json';
 const CATS = getCategories();
 
 const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
 const manifest = {
   id: ID,
-  version: '1.0.2',
+  version: '1.1.0',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
-  logo: 'vimeo.png',
-  background: 'background.png',
+  logo: '/public/vimeo.png',
+  background: '/public/background.jpg',
   endpoint: MANIFEST_URL,
   contactEmail: 'tymmesyde@gmail.com',
   resources: ['catalog', 'meta', 'stream'],
@@ -41,12 +44,35 @@ const respond = (res, data) => {
   res.send(data);
 }
 
+// EXPRESS / HANDLEBARS CONFIG
+addon.use(sassMiddleware({
+  src: __dirname,
+  dest: __dirname,
+  debug: false,
+  outputStyle: 'compressed'
+}));
+addon.use('/public', express.static(path.join(__dirname, 'public')));
+
+addon.engine('.hbs', exphbs({
+  defaultLayout: 'main',
+  extname: '.hbs',
+  layoutsDir: path.join(__dirname, 'views/layouts')
+}))
+addon.set('view engine', '.hbs')
+addon.set('views', path.join(__dirname, 'views'))
+
+// ROUTES
+addon.get('/', (req, res) => {
+  res.render('home', manifest);
+});
+
 addon.get('/manifest.json', (req, res) => {
   respond(res, manifest);
 });
 
 addon.get('/catalog/:type/:id/:extra?.json', async (req, res) => {
-  console.log('CATALOG:', req.params);
+  if (DEV) console.log('CATALOG:', req.params);
+
   const { type, id } = req.params;
   const { genre, skip } = parseParams(req.params.extra || "") || {};
 
@@ -63,7 +89,8 @@ addon.get('/catalog/:type/:id/:extra?.json', async (req, res) => {
 });
 
 addon.get('/meta/:type/:id.json', async (req, res) => {
-  console.log('META:', req.params);
+  if (DEV) console.log('META:', req.params);
+
   const { type, id } = req.params;
 
   if(type == 'movie' && id.includes(VIMEO_ID)) {
@@ -75,7 +102,8 @@ addon.get('/meta/:type/:id.json', async (req, res) => {
 });
 
 addon.get('/stream/:type/:id.json', async (req, res) => {
-  console.log('STREAM:', req.params);
+  if (DEV) console.log('STREAM:', req.params);
+
   const { type, id } = req.params;
 
   if(type == 'movie' && id.includes(VIMEO_ID)) {

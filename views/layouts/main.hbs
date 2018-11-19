@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html style="background-image: url({{background}});">
+    <head>
+        <meta charset="utf-8">
+        <title>Vimeo - Stremio Addon</title>
+        <link href="//fonts.googleapis.com/css?family=Lato:100,300,400,100italic,200italic,300italic" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="/public/styles/main.css">
+        <link rel="shortcut icon" href="{{logo}}" type="image/x-icon">
+    </head>
+    <body>
+        {{{body}}}
+
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        
+        <script>
+            $.get("http://localhost:11470/manifest").success(function () {
+                $("#addon").on("click", ".activate-link", function (e) {
+                    e.preventDefault();
+                    $.get("http://localhost:11470/info/" + encodeURIComponent("{{id}}/stremioget/stremio/v1"))
+                    return false;
+                });
+            }).error(function (e) { /* ignore */ })
+        </script>
+    </body>
+</html>
