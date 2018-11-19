@@ -2,17 +2,18 @@
 require('dotenv').config()
 const fs = require('fs');
 const request = require('request');
-const AddonSDK = require('stremio-addon-sdk');
 const Vimeo = require('vimeo').Vimeo;
+const express = require('express');
+const addon = express();
 
 const { PORT, PER_PAGE, ID, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
 const JSONCATS = './categories.json';
 const CATS = getCategories();
 
 const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
-const addon = new AddonSDK({
+const manifest = {
   id: ID,
-  version: '1.0.1',
+  version: '1.0.2',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
   logo: 'vimeo.png',
@@ -31,44 +32,63 @@ const addon = new AddonSDK({
       extraSupported: ['search', 'genre', 'skip', 'top']
     }
   ]
+};
+
+const respond = (res, data) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.send(data);
+}
+
+addon.get('/manifest.json', (req, res) => {
+  respond(res, manifest);
 });
 
-addon.defineCatalogHandler(async (args, cb) => {
-  console.log('CATALOG:', args);
-  if(args.type == 'movie' && args.id == 'vimeo') {
-    let videos = await getVideos(args.extra.genre, args.extra.skip);
+addon.get('/catalog/:type/:id/:extra?.json', async (req, res) => {
+  console.log('CATALOG:', req.params);
+  const { type, id } = req.params;
+  const { genre, skip } = parseParams(req.params.extra || "") || {};
+
+  if(type == 'movie' && id == 'vimeo') {
+    let videos = await getVideos(genre, skip);
     let metas = await Promise.all(videos.map(async id => {
       return await getMeta(id);
     }));
 
-    cb(null, { metas: metas })
+    respond(res, { metas: metas });
   }else {
-    cb(null, { metas: [] })
-  }
-})
-
-addon.defineMetaHandler(async (args, cb) => {
-  console.log('META:', args);
-  if(args.type == 'movie' && args.id.includes(VIMEO_ID)) {
-    let video = await getMeta(args.id);
-    cb(null, { meta: video })
-  }else {
-    cb(null, { meta: [] })
-  }
-})
-
-addon.defineStreamHandler(async (args, cb) => {
-  console.log('STREAM:', args);
-  if(args.type == 'movie' && args.id.includes(VIMEO_ID)) {
-    let streams = await getStreams(args.id);
-    cb(null, { streams: streams });
-  }else {
-    cb(null, { meta: [] })
+    respond(res, { metas: [] });
   }
 });
 
-addon.runHTTPWithOptions({ port: PORT });
-// addon.publishToCentral(MANIFEST_URL);
+addon.get('/meta/:type/:id.json', async (req, res) => {
+  console.log('META:', req.params);
+  const { type, id } = req.params;
+
+  if(type == 'movie' && id.includes(VIMEO_ID)) {
+    let video = await getMeta(id);
+    respond(res, { meta: video });
+  }else {
+    respond(res, { meta: [] });
+  }
+});
+
+addon.get('/stream/:type/:id.json', async (req, res) => {
+  console.log('STREAM:', req.params);
+  const { type, id } = req.params;
+
+  if(type == 'movie' && id.includes(VIMEO_ID)) {
+    let streams = await getStreams(id);
+    respond(res, { streams: streams });
+  }else {
+    respond(res, { streams: [] });
+  }
+});
+
+const app = addon.listen(PORT, () => {
+  console.log(`Add-on Repository URL: http://127.0.0.1:${PORT}/manifest.json`);
+});
 
 function getVideos(genre = null, skip = 0) {
   return new Promise((resolve) => {
@@ -197,3 +217,16 @@ function toYear(date) {
 function toChrono(sec) {
   return (sec/60).toFixed(2).replace('.', ':');
 }
+
+function parseParams(paramsString) {
+  var params = {}, queries, temp, i, l;
+  queries = paramsString.split("&");
+  for (i = 0, l = queries.length; i < l; i++) {
+    temp = queries[i].split('=');
+    params[temp[0]] = temp[1];
+  }
+  return params;
+};
+
+
+module.exports = app;
