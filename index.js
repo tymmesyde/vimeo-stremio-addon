@@ -5,20 +5,23 @@ const request = require('request');
 const AddonSDK = require('stremio-addon-sdk');
 const Vimeo = require('vimeo').Vimeo;
 
-const { PORT, PER_PAGE, ID, DOMAIN, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
+const { PORT, PER_PAGE, ID, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
 const JSONCATS = './categories.json';
 const CATS = getCategories();
 
 const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
 const addon = new AddonSDK({
   id: ID,
-  version: '1.0.0',
+  version: '1.0.1',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
   logo: 'vimeo.png',
   background: 'background.png',
-  resources: ['catalog', 'meta', 'stream', 'subtitles'],
-  types: ['movie'],
+  endpoint: MANIFEST_URL,
+  contactEmail: 'tymmesyde@gmail.com',
+  resources: ['catalog', 'meta', 'stream'],
+  types: ['movie', 'channel'],
+  idPrefixes: ['vimeo_id'],
   catalogs: [
     {
       type: 'movie',
@@ -64,13 +67,8 @@ addon.defineStreamHandler(async (args, cb) => {
   }
 });
 
-addon.defineSubtitleHandler((args, cb) => {
-  console.log('SUBTITLES:', args);
-  cb(null, { subtitles: [] })
-});
-
 addon.runHTTPWithOptions({ port: PORT });
-addon.publishToCentral(DOMAIN);
+// addon.publishToCentral(MANIFEST_URL);
 
 function getVideos(genre = null, skip = 0) {
   return new Promise((resolve) => {

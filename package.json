@@ -1,17 +1,22 @@
 {
   "name": "vimeo-stremio-addon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Watch Vimeo videos & channels on Stremio",
   "main": "index.js",
   "dependencies": {
     "dotenv": "^6.1.0",
+    "express": "^4.16.4",
     "request": "^2.88.0",
     "stremio-addon-sdk": "^0.6.4",
     "vimeo": "^2.1.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "mocha": "^5.2.0",
+    "tape": "^4.9.1"
+  },
   "scripts": {
-    "start": "node ./index.js"
+    "start": "node ./index.js",
+    "test": "mocha"
   },
   "author": "tymmesyde",
   "license": "ISC"
