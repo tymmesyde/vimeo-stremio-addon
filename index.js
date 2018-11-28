@@ -6,7 +6,7 @@ const request = require('request');
 const Vimeo = require('vimeo').Vimeo;
 const AddonSDK = require('stremio-addon-sdk');
 
-const { DEV, PORT, PER_PAGE, ID, DOMAIN, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
+const { ENV, PORT, PER_PAGE, ID, DOMAIN, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
 const CATS = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
 
 const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
@@ -39,12 +39,12 @@ const addon = new AddonSDK(manifest);
 addon.serveDir('/public', './public');
 
 addon.defineCatalogHandler(async (args, cb) => {
-  if (DEV) console.log('CATALOG:', args);
+  if (ENV == 'dev') console.log('CATALOG:', args);
 
   const { type, id } = args;
-  const { genre, skip } = args.extra || {};
+  const { genre, skip, search } = args.extra || {};
 
-  if (type == 'movie' && id == 'vimeo') {
+  if (type == 'movie' && id == 'vimeo' && !search) {
     let videos = await getVideos(genre, skip);
     let metas = await Promise.all(videos.map(async id => {
       return await getMeta(id);
@@ -57,7 +57,7 @@ addon.defineCatalogHandler(async (args, cb) => {
 });
 
 addon.defineMetaHandler(async (args, cb) => {
-  if (DEV) console.log('META:', args);
+  if (ENV == 'dev') console.log('META:', args);
 
   const { type, id } = args;
 
@@ -70,8 +70,8 @@ addon.defineMetaHandler(async (args, cb) => {
 });
 
 addon.defineStreamHandler(async (args, cb) => {
-  if (DEV) console.log('STREAM:', args);
-
+  if (ENV == 'dev') console.log('STREAM:', args);
+  
   const { type, id } = args;
 
   if(type == 'movie' && id.includes(VIMEO_ID)) {
@@ -106,12 +106,13 @@ function getVideos(genre = null, skip = 0) {
       }
     }, (error, body, status, headers) => {
       if(error) {
+        if (ENV == 'dev') console.error(error);
         resolve([]);
       }else {
         let data = body.data || [];
         let list = data.map(video => {
           let { uri, name, description, duration, created_time } = video;
-          return `vimeo_id:${uri.split('/')[2]}`;
+          return `${VIMEO_ID}:${uri.split('/')[2]}`;
         });
 
         resolve(list);
@@ -126,7 +127,7 @@ function getMeta(addon_id) {
     let { title, description, author_name, thumbnail_url, duration, upload_date} = await fetchOEmbed(id) || {};
 
     let meta = {
-      id: `vimeo_id:${id}`,
+      id: `${VIMEO_ID}:${id}`,
       name: title,
       description: description,
       director: [author_name],
