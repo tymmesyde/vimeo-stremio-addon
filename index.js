@@ -6,10 +6,8 @@ const request = require('request');
 const Vimeo = require('vimeo').Vimeo;
 const AddonSDK = require('stremio-addon-sdk');
 
-const { ENV, PORT, PER_PAGE, ID, DOMAIN, MANIFEST_URL, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
-const CATS = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
-
-const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
+const { ENV, PORT, PER_PAGE, ID, DOMAIN, MANIFEST_URL, CACHING_TIME, VIMEO_ID, VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN, VIMEO_OEMBED, VIMEO_PLAYER } = process.env;
+const CATEGORIES = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
 
 const manifest = {
   id: ID,
@@ -28,13 +26,38 @@ const manifest = {
       type: 'movie',
       id: 'vimeo',
       name: 'Vimeo',
-      genres: objToArr(CATS),
+      genres: objToArr(CATEGORIES),
       extraSupported: ['genre', 'skip', 'top']
     }
   ]
 };
 
+const vimeo = new Vimeo(VIMEO_CLIENT, VIMEO_SECRET, VIMEO_TOKEN);
 const addon = new AddonSDK(manifest);
+
+// Catalog caching
+var CATALOG = {};
+
+// Cache catalog
+async function cacheCatalog() {
+  if (ENV == 'dev') console.log('CATALOG CACHING ...');
+
+  // Fetch all metas for each categories
+  await Promise.all(Object.values(CATEGORIES).map(async name => {
+    let videos = await getVideos(name);
+    CATALOG[name] = await Promise.all(videos.map(async id => {
+      return await getMeta(id);
+    }));
+  }));
+
+  // Fetch top (bestofthemonth) metas
+  let tops = await getVideos();
+  CATALOG['top'] = await Promise.all(tops.map(async id => {
+    return await getMeta(id);
+  }));
+
+  if (ENV == 'dev') console.log(CATALOG, 'CATALOG CACHED !');
+}
 
 addon.serveDir('/public', './public');
 
@@ -45,7 +68,11 @@ addon.defineCatalogHandler(async (args, cb) => {
   const { genre, skip, search } = args.extra || {};
 
   if (type == 'movie' && id == 'vimeo' && !search) {
-    let videos = await getVideos(genre, skip);
+    let name = getCatByTitle(genre);
+    if (!name) cb(null, { metas: [] });
+    if (!skip) cb(null, { metas: CATALOG[name] });
+
+    let videos = await getVideos((name == 'top' ? null : name), skip);
     let metas = await Promise.all(videos.map(async id => {
       return await getMeta(id);
     }));
@@ -71,7 +98,7 @@ addon.defineMetaHandler(async (args, cb) => {
 
 addon.defineStreamHandler(async (args, cb) => {
   if (ENV == 'dev') console.log('STREAM:', args);
-  
+
   const { type, id } = args;
 
   if(type == 'movie' && id.includes(VIMEO_ID)) {
@@ -82,18 +109,19 @@ addon.defineStreamHandler(async (args, cb) => {
   }
 });
 
-addon.runHTTPWithOptions({port: PORT});
+addon.runHTTPWithOptions({port: PORT}, () => {
+  cacheCatalog();
 
-function getVideos(genre = null, skip = 0) {
+  setInterval(async () => {
+    cacheCatalog();
+  }, CACHING_TIME);
+});
+
+function getVideos(cat = null, skip = 0) {
   return new Promise((resolve) => {
     let url = '';
-    if(genre) {
-      let cat = CATS[Object.keys(CATS).filter(title => title.startsWith(genre))];
-      if(cat) url = `categories/${cat}/videos`;
-      else resolve([]);
-    }else {
-      url = 'channels/bestofthemonth/videos';
-    }
+    if (cat) url = `categories/${cat}/videos`;
+    else url = 'channels/bestofthemonth/videos';
 
     let skipPage = skip / PER_PAGE;
     vimeo.request({
@@ -193,6 +221,14 @@ function fetchStreams(id) {
       }
     });
   });
+}
+
+function getCatByName(name) {
+  return CATEGORIES[Object.value(CATEGORIES).filter(n => n.startsWith(name))] || 'top'
+}
+
+function getCatByTitle(title) {
+  return CATEGORIES[Object.keys(CATEGORIES).filter(t => t.startsWith(title))] || 'top'
 }
 
 function objToArr(obj) {
