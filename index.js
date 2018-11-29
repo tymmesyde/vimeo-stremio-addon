@@ -11,7 +11,7 @@ const CATEGORIES = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
 
 const manifest = {
   id: ID,
-  version: '1.2.0',
+  version: '1.2.2',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
   logo: `${DOMAIN}/public/vimeo.png`,
