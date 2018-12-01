@@ -11,7 +11,7 @@ const CATEGORIES = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
 
 const manifest = {
   id: ID,
-  version: '1.2.2',
+  version: '1.2.3',
   name: 'Vimeo',
   description: 'Watch Vimeo videos & channels on Stremio',
   logo: `${DOMAIN}/public/vimeo.png`,
@@ -40,7 +40,7 @@ var CATALOG = {};
 
 // Cache catalog
 async function cacheCatalog() {
-  if (ENV == 'dev') console.log('CATALOG CACHING ...');
+  console.log('CATALOG CACHING ...');
 
   // Fetch all metas for each categories
   await Promise.all(Object.values(CATEGORIES).map(async name => {
@@ -56,10 +56,9 @@ async function cacheCatalog() {
     return await getMeta(id);
   }));
 
-  if (ENV == 'dev') console.log(CATALOG, 'CATALOG CACHED !');
+  if (ENV == 'dev') console.log(CATALOG);
+  console.log('CATALOG CACHED !');
 }
-
-addon.serveDir('/public', './public');
 
 addon.defineCatalogHandler(async (args, cb) => {
   if (ENV == 'dev') console.log('CATALOG:', args);
@@ -69,8 +68,8 @@ addon.defineCatalogHandler(async (args, cb) => {
 
   if (type == 'movie' && id == 'vimeo' && !search) {
     let name = getCatByTitle(genre);
-    if (!name) cb(null, { metas: [] });
-    if (!skip) cb(null, { metas: CATALOG[name] });
+    if (!name) { cb(null, { metas: [] }); return; }
+    if (!skip) { cb(null, { metas: CATALOG[name] }); return; }
 
     let videos = await getVideos((name == 'top' ? null : name), skip);
     let metas = await Promise.all(videos.map(async id => {
@@ -109,6 +108,8 @@ addon.defineStreamHandler(async (args, cb) => {
   }
 });
 
+addon.serveDir('/public', './public');
+addon.publishToWeb('http://localhost:'+PORT);
 addon.runHTTPWithOptions({port: PORT}, () => {
   cacheCatalog();
 
@@ -187,7 +188,7 @@ function getStreams(addon_id) {
       }
     })
 
-    resolve(streams);
+    resolve(sortByQuality(streams));
   });
 }
 
@@ -223,10 +224,6 @@ function fetchStreams(id) {
   });
 }
 
-function getCatByName(name) {
-  return CATEGORIES[Object.value(CATEGORIES).filter(n => n.startsWith(name))] || 'top'
-}
-
 function getCatByTitle(title) {
   return CATEGORIES[Object.keys(CATEGORIES).filter(t => t.startsWith(title))] || 'top'
 }
@@ -234,6 +231,12 @@ function getCatByTitle(title) {
 function objToArr(obj) {
   return Object.keys(obj).map(name => {
     return name;
+  });
+}
+
+function sortByQuality(arr) {
+  return arr.sort((a, b) => {
+    return parseFloat(b.tag[0].replace('p', '')) - parseFloat(a.tag[0].replace('p', ''))
   });
 }
 
