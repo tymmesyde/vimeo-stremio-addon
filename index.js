@@ -109,7 +109,7 @@ addon.defineStreamHandler(async (args, cb) => {
 });
 
 addon.serveDir('/public', './public');
-addon.publishToWeb('http://localhost:'+PORT);
+addon.publishToWeb(DOMAIN);
 addon.runHTTPWithOptions({port: PORT}, () => {
   cacheCatalog();
 
