@@ -1,6 +1,6 @@
 {
   "name": "vimeo-stremio-addon",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Watch Vimeo videos & channels on Stremio",
   "main": "index.js",
   "dependencies": {
