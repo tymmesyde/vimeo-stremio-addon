@@ -2,7 +2,7 @@ require('dotenv').config()
 const { PORT } = process.env;
 const assert = require('assert');
 const request = require('supertest');
-const addon = require('../index');
+const addon = require('../server');
 
 var server = null;
 
@@ -18,18 +18,7 @@ describe('Addon', () => {
 });
 
 describe('Home page', () => {
-    it('should be a valid html document', (done) => {
-        request(server)
-            .get('/')
-            .expect(200)
-            .end((err, res) => {
-                assert(err == null, 'there is an error');
-                assert(res.status === 200, 'status error');
-                assert(res.text != undefined, 'is undefined');
-                assert(res.text.includes('!DOCTYPE html'), 'not an html document');
-                done();
-            });
-    });
+    
 });
 
 describe('Manifest', () => {
