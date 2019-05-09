@@ -5,7 +5,7 @@
   "dependencies": {
     "dotenv": "^6.1.0",
     "request": "^2.88.0",
-    "stremio-addon-sdk": "1.0.x",
+    "stremio-addon-sdk": "^1.0.3",
     "vimeo": "^2.1.1"
   },
   "devDependencies": {
