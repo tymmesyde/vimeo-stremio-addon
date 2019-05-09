@@ -5,11 +5,11 @@ const { serveHTTP } = require("stremio-addon-sdk")
 const catalog = require('./catalog')
 const addonInterface = require('./addon')
 
-serveHTTP(addonInterface, { port: PORT, static: '/static' }).then((s) => {
-    catalog.cacheCatalog()
-
-    setInterval(async () => {
-        catalog.cacheCatalog()
-    }, CACHING_DELAY)
+catalog.cacheCatalog().then(() => {
+    serveHTTP(addonInterface, { port: PORT, static: '/static' }).then((s) => {
+        setInterval(async () => {
+            catalog.cacheCatalog()
+        }, CACHING_DELAY)
+    })
 })
 

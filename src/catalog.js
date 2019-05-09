@@ -1,10 +1,10 @@
-const fs = require('fs');
 const Utils = require('./utils');
 const Vimeo = require('./vimeo');
+const categories = require('./categories.json');
 
 const vimeo = new Vimeo();
 
-global.CATEGORIES = JSON.parse(fs.readFileSync('./categories.json', 'utf8'));
+global.CATEGORIES = categories;
 global.CATALOG = {};
 
 exports.cacheCatalog = async () => {
@@ -25,4 +25,5 @@ exports.cacheCatalog = async () => {
     });
 
     console.log('CACHED CATALOG !');
+    Promise.resolve();
 }
