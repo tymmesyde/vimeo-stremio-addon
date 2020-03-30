@@ -9,8 +9,13 @@ exports.objToArr = function(obj) {
 
 exports.sortByQuality = function(arr) {
     return arr.sort((a, b) => {
-        return parseFloat(b.tag[0].replace('p', '')) - parseFloat(a.tag[0].replace('p', ''))
+        return parseFloat(b.tag[0].replace('p', '')) - parseFloat(a.tag[0].replace('p', ''));
     });
+}
+
+exports.trimParagraph = function(str) {
+    if (!str) return '';
+    return str.substr(0, str.indexOf('\n')).concat('...');
 }
 
 exports.toYear = function(date) {
@@ -38,16 +43,16 @@ exports.toMeta = function(video) {
 
     return {
         id: `${VIDEO_PREFIX}:${uri.split('/')[2]}`,
-        name: name,
-        description: description,
-        language: language,
-        genres: genres,
+        name,
+        description: this.trimParagraph(description),
+        language,
+        genres,
         director: [(user && user.name) || 'unknown'],
         website: link,
         releaseInfo: this.toYear(created_time),
         runtime: `${this.toChrono(duration)} min`,
         logo: thumbnail,
-        background: background,
+        background,
         poster: background,
         posterShape: 'landscape',
         type: 'movie'
